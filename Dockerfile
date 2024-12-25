@@ -17,8 +17,6 @@ RUN mkdir -p /app/static
 RUN mkdir -p /app/temp
 RUN chmod 777 /app/temp
 
-# Копирование шрифта
-COPY ./fonts/PT_Sans-Web-Bold.ttf /app/static/PTSans-Bold.ttf
 
 # Установка зависимостей
 COPY requirements.txt .

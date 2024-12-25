@@ -40,17 +40,18 @@ app = FastAPI(
 os.makedirs(settings.temp_dir, exist_ok=True)
 os.makedirs(settings.static_dir, exist_ok=True)
 
-# Проверяем существование директории ������������������������ред монтированием
+# Проверяем и монтируем основную static директорию
 if os.path.exists(settings.static_dir):
     app.mount("/static", StaticFiles(directory=settings.static_dir), name="static")
 else:
     raise RuntimeError(f"Directory '{settings.static_dir}' does not exist")
 
-# После существующего монтирования static директории добавьте:
-if os.path.exists('/app/fonts'):
-    app.mount("/fonts", StaticFiles(directory="/app/fonts"), name="fonts")
+# Монтируем директорию со шрифтами
+fonts_dir = os.path.join(settings.static_dir, 'fonts')
+if os.path.exists(fonts_dir):
+    app.mount("/fonts", StaticFiles(directory=fonts_dir), name="fonts")
 else:
-    logger.warning("Directory '/app/fonts' does not exist")
+    logger.warning(f"Directory '{fonts_dir}' does not exist")
 
 # Настройка CORS
 origins = settings.allowed_origins.split(',')
@@ -109,7 +110,7 @@ def process_html_with_images(html_content):
             base64_data = download_and_encode_image(url)
             return f'background-image: url({base64_data})'
         
-        # З��ме��яе�� все src изображения
+        # Змеяе все src изображения
         processed_html = re.sub(img_pattern, replace_with_base64, html_content)
         # Заменяем все background-image
         processed_html = re.sub(bg_pattern, replace_bg_with_base64, processed_html)
@@ -128,7 +129,7 @@ def get_cached_image(url: str, cache_dir: str) -> str:
     cached_path = Path(cache_dir) / f"{url_hash}.{file_ext}"
     
     if not cached_path.exists():
-        logger.info(f"Скачивание изобра����ения {url}")
+        logger.info(f"Скачивание изобраения {url}")
         response = requests.get(url, verify=settings.verify_ssl)
         response.raise_for_status()
         cached_path.write_bytes(response.content)
@@ -165,7 +166,7 @@ def create_screenshot_with_selenium(html_content, output_path):
 
 @app.post("/convert", 
     response_class=FileResponse,
-    summary="Конв��ртировать HTML файл  изображение",
+    summary="Конвртировать HTML файл  изображение",
     response_description="PNG изображение"
 )
 async def convert_html_to_image(
@@ -179,7 +180,7 @@ async def convert_html_to_image(
         # Читаем содержимое файла как байты
         content = await html_file.read()
         
-        # Определяем код��ровку автоматически
+        # Определяем кодировку автоматически
         detected = chardet.detect(content)
         encoding = detected['encoding']
         
@@ -197,7 +198,7 @@ async def convert_html_to_image(
                 logger.error(f"Ошибка декодирования с cp1251: {str(e2)}")
                 raise HTTPException(
                     status_code=400,
-                    detail="Не у��алос�� правильно прочиать файл. Убедитесь, что файл в кодировке UTF-8 или Windows-1251"
+                    detail="Не уалос правильно прочиать файл. Убедитесь, что файл в кодировке UTF-8 или Windows-1251"
                 )
         
         hti = Html2Image(
@@ -225,14 +226,14 @@ async def convert_html_to_image(
         # Базовые стили
         base_styles = """
         @font-face {
-            font-family: 'PT Sans';
-            src: url('/fonts/PT_Sans-Web-Bold.ttf') format('truetype');
+            font-family: 'PTSans';
+            src: url('file:///app/static/fonts/PT_Sans-Web-Bold.ttf') format('truetype');
             font-weight: bold;
             font-style: normal;
         }
         @font-face {
             font-family: 'Inter';
-            src: url('/fonts/Inter_18pt-Regular.ttf') format('truetype');
+            src: url('file:///app/static/fonts/Inter_18pt-Regular.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
