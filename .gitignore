@@ -20,6 +20,9 @@ var/
 .installed.cfg
 *.egg
 
+static/cache/
+static/cache/*
+
 # Virtual Environment
 venv/
 ENV/

@@ -122,7 +122,7 @@ def get_cached_image(url: str, cache_dir: str) -> str:
     cached_path = Path(cache_dir) / f"{url_hash}.{file_ext}"
     
     if not cached_path.exists():
-        logger.info(f"Скачивание изображения {url}")
+        logger.info(f"Скачивание изобра��ения {url}")
         response = requests.get(url, verify=settings.verify_ssl)
         response.raise_for_status()
         cached_path.write_bytes(response.content)
@@ -134,7 +134,7 @@ def create_screenshot_with_selenium(html_content, output_path):
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--window-size=1280,720')
+    chrome_options.add_argument('--window-size=1920,1080')
     
     driver = webdriver.Chrome(options=chrome_options)
     try:
@@ -159,7 +159,7 @@ def create_screenshot_with_selenium(html_content, output_path):
 
 @app.post("/convert", 
     response_class=FileResponse,
-    summary="Конвертировать HTML файл  изображение",
+    summary="Конв��ртировать HTML файл  изображение",
     response_description="PNG изображение"
 )
 async def convert_html_to_image(
@@ -239,7 +239,7 @@ async def convert_html_to_image(
         """
         
         logger.debug("Обработка HTML и встраивание изображений")
-        # Удаляем теги style из HTML, так как стили будут переданы отдельно
+        # Уд��ляем теги style из HTML, так как стили будут переданы отдельно
         processed_html = re.sub(style_pattern, '', process_html_with_images(html_content))
         
         filename = f"image_{uuid.uuid4()}.png"
@@ -310,45 +310,7 @@ async def render_card(
         html_content = html_content.replace('Константин Викторович Фамильцев', name)
         html_content = html_content.replace('Пусть у тебя в жизни будет ...', text)
         
-        # Обновленные стили для решения проблемы с белой полоской
-        html_content = html_content.replace('</head>',
-            '''
-            <style>
-                html, body {
-                    width: 1280px !important;
-                    height: 720px !important;
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    overflow: hidden !important;
-                    background: transparent !important;
-                }
-                #card {
-                    width: 1280px !important;
-                    height: 720px !important;
-                    margin: 0 !important;
-                    padding: 32px !important;
-                    position: relative !important;
-                    box-sizing: border-box !important;
-                    background-size: cover !important;
-                    background-position: center !important;
-                    display: block !important;
-                    transform: translateZ(0) !important;
-                    -webkit-transform: translateZ(0) !important;
-                }
-                * {
-                    box-sizing: border-box !important;
-                    margin: 0 !important;
-                    padding: 0 !important;
-                }
-            </style>
-            </head>
-            '''
-        )
-        
-        filename = f"card_{uuid.uuid4()}.png"
-        full_path = os.path.join(settings.static_dir, filename)
-        
-        # Обновленные настройки для Html2Image
+        # Обновляем настройки для Html2Image
         hti = Html2Image(
             output_path=settings.static_dir,
             custom_flags=[
@@ -357,7 +319,7 @@ async def render_card(
                 '--headless',
                 '--hide-scrollbars',
                 '--force-device-scale-factor=1',
-                '--window-size=1280,720',
+                '--window-size=1920,1080',
                 '--disable-setuid-sandbox',
                 '--disable-software-rasterizer',
                 '--disable-dev-shm-usage',
@@ -368,34 +330,69 @@ async def render_card(
                 '--disable-backgrounding-occluded-windows',
                 '--disable-renderer-backgrounding',
                 '--run-all-compositor-stages-before-draw',
-                '--disable-features=TranslateUI',
-                '--disable-extensions',
-                '--metrics-recording-only',
-                '--no-default-browser-check',
-                '--no-first-run'
+                '--screenshot-clip=0,0,1920,1080',  # Явно указываем область скриншота
+                '--hide-scrollbars',
+                '--force-device-scale-factor=1'
             ]
         )
         
-        logger.debug("Создание скриншота карточки")
+        # Добавляем дополнительные стили для фиксации размеров
+        html_content = html_content.replace('</head>',
+            '''
+            <style>
+                html, body {
+                    width: 1920px !important;
+                    height: 1080px !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    overflow: hidden !important;
+                    background: transparent !important;
+                    position: fixed !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                }
+                #card {
+                    width: 1920px !important;
+                    height: 1080px !important;
+                    margin: 0 !important;
+                    padding: 32px !important;
+                    position: absolute !important;
+                    box-sizing: border-box !important;
+                    background-size: cover !important;
+                    background-position: center !important;
+                    display: block !important;
+                    transform: translateZ(0) !important;
+                    -webkit-transform: translateZ(0) !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                }
+            </style>
+            </head>
+            '''
+        )
         
-        # Добавляем задержку перед созданием скриншота
+        # Добавляем скрипт для гарантированной загрузки
         html_content = html_content.replace('</body>',
             '''
             <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    setTimeout(function() {
-                        document.body.style.opacity = '1';
-                    }, 100);
-                });
+                window.onload = function() {
+                    document.documentElement.style.backgroundColor = 'transparent';
+                    document.body.style.backgroundColor = 'transparent';
+                };
             </script>
             </body>
             '''
         )
         
+        filename = f"card_{uuid.uuid4()}.png"
+        full_path = os.path.join(settings.static_dir, filename)
+        
+        logger.debug("Создание скриншота карточки")
+        
         hti.screenshot(
             html_str=html_content,
             save_as=filename,
-            size=(1280, 720)
+            size=(1920, 1080)
         )
         
         if not os.path.exists(full_path):
