@@ -32,7 +32,7 @@ app = FastAPI(
     docs_url=None,  # Отключаем Swagger UI
     redoc_url=None, # Отключаем ReDoc
     title="HTML to Image Converter",
-    description="Сервис для конвертации HTML в изображения",
+    description="Сервис для к��нвертации HTML в изображения",
     version="1.0.0"
 )
 
@@ -225,14 +225,14 @@ async def convert_html_to_image(
         # Базовые стили
         base_styles = """
         @font-face {
-            font-family: 'Inter';
-            src: url('/fonts/Inter_28pt-Bold.ttf') format('truetype');
+            font-family: 'PT Sans';
+            src: url('/fonts/PT_Sans-Web-Bold.ttf') format('truetype');
             font-weight: bold;
             font-style: normal;
         }
         @font-face {
             font-family: 'Inter';
-            src: url('/fonts/Inter_24pt-Regular.ttf') format('truetype');
+            src: url('/fonts/Inter_18pt-Regular.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
         }
@@ -246,12 +246,11 @@ async def convert_html_to_image(
             padding: 0;
             height: 100%;
             overflow: hidden;
-            font-family: 'Inter', sans-serif;
         }
         """
         
         logger.debug("Обработка HTML и встраивание изображений")
-        # Уд��ляем теги style из HTML, так как стили будут переданы отдельно
+        # Удляем теги style из HTML, так как стили будут переданы отдельно
         processed_html = re.sub(style_pattern, '', process_html_with_images(html_content))
         
         filename = f"image_{uuid.uuid4()}.png"
@@ -270,7 +269,7 @@ async def convert_html_to_image(
         )
         
         if not os.path.exists(full_path):
-            logger.error(f"Не удалось ��оздать файл изо��ра��ения: {full_path}")
+            logger.error(f"Не удалось создать файл изображения: {full_path}")
             raise HTTPException(status_code=500, detail="Failed to create image")
         
         logger.info("Изображение успешно создано")
@@ -311,7 +310,7 @@ async def render_card(
         vjuh_path = get_cached_image(vjuh, cache_dir)
         bg_path = get_cached_image(bg, cache_dir)
         
-        # Чит��ем шаблон HTML
+        # Читем шаблон HTML
         template_path = os.path.join(settings.static_dir, 'index.html')
         with open(template_path, 'r', encoding='utf-8') as f:
             html_content = f.read()
