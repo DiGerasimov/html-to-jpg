@@ -32,7 +32,7 @@ app = FastAPI(
     docs_url=None,  # Отключаем Swagger UI
     redoc_url=None, # Отключаем ReDoc
     title="HTML to Image Converter",
-    description="Сервис для к��нвертации HTML в изображения",
+    description="Сервис для конвертации HTML в изображения",
     version="1.0.0"
 )
 
@@ -45,6 +45,12 @@ if os.path.exists(settings.static_dir):
     app.mount("/static", StaticFiles(directory=settings.static_dir), name="static")
 else:
     raise RuntimeError(f"Directory '{settings.static_dir}' does not exist")
+
+# После существующего монтирования static директории добавьте:
+if os.path.exists('/app/fonts'):
+    app.mount("/fonts", StaticFiles(directory="/app/fonts"), name="fonts")
+else:
+    logger.warning("Directory '/app/fonts' does not exist")
 
 # Настройка CORS
 origins = settings.allowed_origins.split(',')
@@ -173,7 +179,7 @@ async def convert_html_to_image(
         # Читаем содержимое файла как байты
         content = await html_file.read()
         
-        # Определяем кодировку автоматически
+        # Определяем код��ровку автоматически
         detected = chardet.detect(content)
         encoding = detected['encoding']
         
@@ -219,9 +225,15 @@ async def convert_html_to_image(
         # Базовые стили
         base_styles = """
         @font-face {
-            font-family: 'PT Sans';
-            src: url('/static/PTSans-Bold.ttf') format('truetype');
+            font-family: 'Inter';
+            src: url('/fonts/Inter_28pt-Bold.ttf') format('truetype');
             font-weight: bold;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'Inter';
+            src: url('/fonts/Inter_24pt-Regular.ttf') format('truetype');
+            font-weight: normal;
             font-style: normal;
         }
         * {
@@ -234,7 +246,7 @@ async def convert_html_to_image(
             padding: 0;
             height: 100%;
             overflow: hidden;
-            font-family: 'PT Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
         }
         """
         
@@ -299,7 +311,7 @@ async def render_card(
         vjuh_path = get_cached_image(vjuh, cache_dir)
         bg_path = get_cached_image(bg, cache_dir)
         
-        # Читаем шаблон HTML
+        # Чит��ем шаблон HTML
         template_path = os.path.join(settings.static_dir, 'index.html')
         with open(template_path, 'r', encoding='utf-8') as f:
             html_content = f.read()
