@@ -11,4 +11,5 @@ services:
     volumes:
       - ./app:/app/app
       - ./static:/app/static
+      - ./fonts:/app/fonts
     restart: always

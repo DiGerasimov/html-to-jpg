@@ -32,7 +32,7 @@ app = FastAPI(
     docs_url=None,  # Отключаем Swagger UI
     redoc_url=None, # Отключаем ReDoc
     title="HTML to Image Converter",
-    description="Сервис для конвертации HTML в изображения",
+    description="Сервис для к��нвертации HTML в изображения",
     version="1.0.0"
 )
 
@@ -122,7 +122,7 @@ def get_cached_image(url: str, cache_dir: str) -> str:
     cached_path = Path(cache_dir) / f"{url_hash}.{file_ext}"
     
     if not cached_path.exists():
-        logger.info(f"Скачивание изобра��ения {url}")
+        logger.info(f"Скачивание изобра����ения {url}")
         response = requests.get(url, verify=settings.verify_ssl)
         response.raise_for_status()
         cached_path.write_bytes(response.content)
@@ -258,7 +258,7 @@ async def convert_html_to_image(
         )
         
         if not os.path.exists(full_path):
-            logger.error(f"Не удалось создать файл изо��ра��ения: {full_path}")
+            logger.error(f"Не удалось ��оздать файл изо��ра��ения: {full_path}")
             raise HTTPException(status_code=500, detail="Failed to create image")
         
         logger.info("Изображение успешно создано")
