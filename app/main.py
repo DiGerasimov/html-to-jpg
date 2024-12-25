@@ -317,8 +317,8 @@ async def render_card(
             html_content = f.read()
         
         # Заменяем placeholder'ы в HTML
-        html_content = html_content.replace('https://cdek25.ru/cardBgImage1.png', f'file://{bg_path}')
-        html_content = html_content.replace('https://cdek25.ru/card-vjuh1.png', f'file://{vjuh_path}')
+        html_content = html_content.replace('https://cdek25.ru/cards/1.png', f'file://{bg_path}')
+        html_content = html_content.replace('https://cdek25.ru/cards/v1.png', f'file://{vjuh_path}')
         html_content = html_content.replace('Константин Викторович Фамильцев', name)
         html_content = html_content.replace('Пусть у тебя в жизни будет ...', text)
         
