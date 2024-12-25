@@ -16,6 +16,10 @@ import chardet
 from config import settings
 import hashlib
 from pathlib import Path
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 # Настраиваем логирование
 logging.basicConfig(level=logging.DEBUG)
@@ -25,6 +29,8 @@ if not settings.verify_ssl:
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 app = FastAPI(
+    docs_url=None,  # Отключаем Swagger UI
+    redoc_url=None, # Отключаем ReDoc
     title="HTML to Image Converter",
     description="Сервис для конвертации HTML в изображения",
     version="1.0.0"
@@ -34,7 +40,7 @@ app = FastAPI(
 os.makedirs(settings.temp_dir, exist_ok=True)
 os.makedirs(settings.static_dir, exist_ok=True)
 
-# Проверяем существование директории ������������ред монтированием
+# Проверяем существование директории ������������������������ред монтированием
 if os.path.exists(settings.static_dir):
     app.mount("/static", StaticFiles(directory=settings.static_dir), name="static")
 else:
@@ -123,9 +129,37 @@ def get_cached_image(url: str, cache_dir: str) -> str:
     
     return str(cached_path)
 
+def create_screenshot_with_selenium(html_content, output_path):
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--window-size=1280,720')
+    
+    driver = webdriver.Chrome(options=chrome_options)
+    try:
+        # Сохраняем HTML во временный файл
+        temp_html = os.path.join(settings.temp_dir, 'temp.html')
+        with open(temp_html, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        
+        driver.get(f'file://{temp_html}')
+        
+        # Ждем загрузки всех элементов
+        WebDriverWait(driver, 10).until(
+            lambda d: d.execute_script('return document.readyState') == 'complete'
+        )
+        
+        # Делаем скриншот
+        driver.save_screenshot(output_path)
+    finally:
+        driver.quit()
+        if os.path.exists(temp_html):
+            os.remove(temp_html)
+
 @app.post("/convert", 
     response_class=FileResponse,
-    summary="Конвертировать HTML файл в изображение",
+    summary="Конвертировать HTML файл  изображение",
     response_description="PNG изображение"
 )
 async def convert_html_to_image(
@@ -224,7 +258,7 @@ async def convert_html_to_image(
         )
         
         if not os.path.exists(full_path):
-            logger.error(f"Не удалось создать файл изображения: {full_path}")
+            logger.error(f"Не удалось создать файл изо��ра��ения: {full_path}")
             raise HTTPException(status_code=500, detail="Failed to create image")
         
         logger.info("Изображение успешно создано")
@@ -261,7 +295,7 @@ async def render_card(
         cache_dir = os.path.join(settings.static_dir, 'cache')
         os.makedirs(cache_dir, exist_ok=True)
         
-        # Скачиваем и ��эшируе�� изображения
+        # Скачиваем и кэшируем изображения
         vjuh_path = get_cached_image(vjuh, cache_dir)
         bg_path = get_cached_image(bg, cache_dir)
         
@@ -276,30 +310,35 @@ async def render_card(
         html_content = html_content.replace('Константин Викторович Фамильцев', name)
         html_content = html_content.replace('Пусть у тебя в жизни будет ...', text)
         
-        # Добавляем дополнительные стили для контейнера
+        # Обновленные стили для решения проблемы с белой полоской
         html_content = html_content.replace('</head>',
             '''
             <style>
                 html, body {
-                    width: 1920px;
-                    height: 1080px;
-                    margin: 0;
-                    padding: 0;
-                    overflow: hidden;
-                    background: transparent;
+                    width: 1280px !important;
+                    height: 720px !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    overflow: hidden !important;
+                    background: transparent !important;
                 }
                 #card {
-                    width: 1920px;
-                    height: 1080px;
-                    margin: 0;
-                    padding: 48px;
-                    position: relative;
-                    box-sizing: border-box;
-                    background-size: cover;
-                    background-position: center;
+                    width: 1280px !important;
+                    height: 720px !important;
+                    margin: 0 !important;
+                    padding: 32px !important;
+                    position: relative !important;
+                    box-sizing: border-box !important;
+                    background-size: cover !important;
+                    background-position: center !important;
+                    display: block !important;
+                    transform: translateZ(0) !important;
+                    -webkit-transform: translateZ(0) !important;
                 }
                 * {
-                    box-sizing: border-box;
+                    box-sizing: border-box !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
                 }
             </style>
             </head>
@@ -309,33 +348,54 @@ async def render_card(
         filename = f"card_{uuid.uuid4()}.png"
         full_path = os.path.join(settings.static_dir, filename)
         
-        # Создаем изображение с обновленными настройками
+        # Обновленные настройки для Html2Image
         hti = Html2Image(
             output_path=settings.static_dir,
             custom_flags=[
                 '--no-sandbox',
                 '--disable-gpu',
-                '--disable-dev-shm-usage',
                 '--headless',
                 '--hide-scrollbars',
                 '--force-device-scale-factor=1',
-                '--window-size=1920,1080',
-                '--font-render-hinting=medium',
+                '--window-size=1280,720',
                 '--disable-setuid-sandbox',
-                '--no-first-run',
-                '--no-default-browser-check',
+                '--disable-software-rasterizer',
+                '--disable-dev-shm-usage',
+                '--ignore-certificate-errors',
+                '--disable-web-security',
+                '--allow-file-access-from-files',
+                '--disable-background-timer-throttling',
+                '--disable-backgrounding-occluded-windows',
+                '--disable-renderer-backgrounding',
+                '--run-all-compositor-stages-before-draw',
+                '--disable-features=TranslateUI',
                 '--disable-extensions',
-                '--virtual-time-budget=5000',
-                '--screenshot-clip=0,0,1920,1080'
-            ],
-            size=(1920, 1080)
+                '--metrics-recording-only',
+                '--no-default-browser-check',
+                '--no-first-run'
+            ]
         )
         
         logger.debug("Создание скриншота карточки")
+        
+        # Добавляем задержку перед созданием скриншота
+        html_content = html_content.replace('</body>',
+            '''
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    setTimeout(function() {
+                        document.body.style.opacity = '1';
+                    }, 100);
+                });
+            </script>
+            </body>
+            '''
+        )
+        
         hti.screenshot(
             html_str=html_content,
             save_as=filename,
-            size=(1920, 1080)
+            size=(1280, 720)
         )
         
         if not os.path.exists(full_path):
