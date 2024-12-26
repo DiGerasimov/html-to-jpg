@@ -9,3 +9,4 @@ html2image==2.0.1
 chardet==4.0.0
 pydantic==1.10.11
 selenium==4.25.0
+Pillow==10.1.0

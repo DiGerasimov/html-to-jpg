@@ -20,6 +20,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from PIL import Image
 
 # Настраиваем логирование
 logging.basicConfig(level=logging.DEBUG)
@@ -32,7 +33,7 @@ app = FastAPI(
     docs_url=None,  # Отключаем Swagger UI
     redoc_url=None, # Отключаем ReDoc
     title="HTML to Image Converter",
-    description="Сервис для к��нвертации HTML в изображения",
+    description="Сервис для конвертации HTML в изображения",
     version="1.0.0"
 )
 
@@ -193,7 +194,7 @@ async def convert_html_to_image(
             # Пробуем запасной вариант с cp1251
             try:
                 html_content = content.decode('cp1251')
-                logger.debug("Успешно декодировано с cp1251")
+                logger.debug("Успешно ��екодировано с cp1251")
             except Exception as e2:
                 logger.error(f"Ошибка декодирования с cp1251: {str(e2)}")
                 raise HTTPException(
@@ -272,6 +273,18 @@ async def convert_html_to_image(
         if not os.path.exists(full_path):
             logger.error(f"Не удалось создать файл изображения: {full_path}")
             raise HTTPException(status_code=500, detail="Failed to create image")
+            
+        # Добавляем обработку и обрезку изображения
+        try:
+            with Image.open(full_path) as img:
+                # Обрезаем нижние 420 пикселей
+                cropped_img = img.crop((0, 0, 1920, 1080))  # 1500 - 420 = 1080
+                # Сохраняем обрезанное изображение
+                cropped_img.save(full_path, 'PNG')
+                logger.debug("Изображение успешно обрезано")
+        except Exception as e:
+            logger.error(f"Ошибка при обрезке изображения: {str(e)}")
+            raise HTTPException(status_code=500, detail="Failed to crop image")
         
         logger.info("Изображение успешно создано")
         
@@ -311,14 +324,14 @@ async def render_card(
         vjuh_path = get_cached_image(vjuh, cache_dir)
         bg_path = get_cached_image(bg, cache_dir)
         
-        # Читем шаблон HTML
+        # Чит��м шаблон HTML
         template_path = os.path.join(settings.static_dir, 'index.html')
         with open(template_path, 'r', encoding='utf-8') as f:
             html_content = f.read()
         
         # Заменяем placeholder'ы в HTML
-        html_content = html_content.replace('https://cdek25.ru/cards/1.png', f'file://{bg_path}')
-        html_content = html_content.replace('https://cdek25.ru/cards/v1.png', f'file://{vjuh_path}')
+        html_content = html_content.replace('https://cdek25.ru/cardBgImage1.png', f'file://{bg_path}')
+        html_content = html_content.replace('https://cdek25.ru/card-vjuh1.png', f'file://{vjuh_path}')
         html_content = html_content.replace('Константин Викторович Фамильцев', name)
         html_content = html_content.replace('Пусть у тебя в жизни будет ...', text)
         
@@ -331,7 +344,7 @@ async def render_card(
                 '--headless',
                 '--hide-scrollbars',
                 '--force-device-scale-factor=1',
-                '--window-size=1920,1080',
+                '--window-size=1920,1500',
                 '--disable-setuid-sandbox',
                 '--disable-software-rasterizer',
                 '--disable-dev-shm-usage',
@@ -342,7 +355,7 @@ async def render_card(
                 '--disable-backgrounding-occluded-windows',
                 '--disable-renderer-backgrounding',
                 '--run-all-compositor-stages-before-draw',
-                '--screenshot-clip=0,0,1920,1080',  # Явно указываем область скриншота
+                '--screenshot-clip=0,0,1920,1500',
                 '--hide-scrollbars',
                 '--force-device-scale-factor=1'
             ]
@@ -354,7 +367,7 @@ async def render_card(
             <style>
                 html, body {
                     width: 1920px !important;
-                    height: 1080px !important;
+                    height: 1500px !important;
                     margin: 0 !important;
                     padding: 0 !important;
                     overflow: hidden !important;
@@ -365,7 +378,7 @@ async def render_card(
                 }
                 #card {
                     width: 1920px !important;
-                    height: 1080px !important;
+                    height: 1500px !important;
                     margin: 0 !important;
                     padding: 32px !important;
                     position: absolute !important;
@@ -404,12 +417,24 @@ async def render_card(
         hti.screenshot(
             html_str=html_content,
             save_as=filename,
-            size=(1920, 1080)
+            size=(1920, 1500)
         )
         
         if not os.path.exists(full_path):
             logger.error(f"Не удалось создать файл изображения: {full_path}")
             raise HTTPException(status_code=500, detail="Failed to create image")
+        
+        # Добавляем обработку и обрезку изображения
+        try:
+            with Image.open(full_path) as img:
+                # Обрезаем нижние 420 пикселей
+                cropped_img = img.crop((0, 0, 1920, 1080))  # 1500 - 420 = 1080
+                # Сохраняем обрезанное изображение
+                cropped_img.save(full_path, 'PNG')
+                logger.debug("Изображение успешно обрезано")
+        except Exception as e:
+            logger.error(f"Ошибка при обрезке изображения: {str(e)}")
+            raise HTTPException(status_code=500, detail="Failed to crop image")
         
         logger.info("Карточка успешно создана")
         
