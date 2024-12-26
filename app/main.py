@@ -431,8 +431,8 @@ async def render_card(
         vjuh = "https://cdek25.ru/cards/v1.png"
 
     # Добавляем проверку длины параметров
-    if len(name) > 45:
-        name = name[:45] + "..."
+    if len(name) > 130:
+        name = name[:130] + "..."
     
     if len(text) > 200:
         text = text[:200] + "..."
