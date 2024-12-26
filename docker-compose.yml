@@ -1,14 +1,31 @@
-version: '3'
+version: '3.8'
 
 services:
   converter:
     build: .
     ports:
       - "8000:8000"
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 8
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --workers 8
     env_file:
       - .env
     volumes:
       - ./app:/app/app
       - ./static:/app/static
+    environment:
+      - REDIS_HOST=redis
+      - PYTHONPATH=/app
+    depends_on:
+      - redis
     restart: always
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: always
+
+volumes:
+  redis_data:
