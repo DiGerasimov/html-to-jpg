@@ -165,7 +165,7 @@ app.add_middleware(GlobalRateLimitMiddleware)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(
         status_code=400,
-        content={"message": "Ошибка в данных запрос��. Проверьте правильность введенных данных."}
+        content={"message": "Ошибка в данных запросе. Проверьте правильность введенных данных."}
     )
 
 @app.exception_handler(HTTPException)
@@ -200,7 +200,7 @@ async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Неожиданная оши��ка: {str(exc)}")
+    logger.error(f"Неожиданная ошибка: {str(exc)}")
     return JSONResponse(
         status_code=500,
         content={"message": "Произошла внутренняя ошибка сервера. Попробуйте позже."}
@@ -215,7 +215,7 @@ def download_and_encode_image(url):
         encoded = base64.b64encode(image_content).decode('utf-8')
         content_type = response.headers.get('content-type', 'image/png')
         result = f"data:{content_type};base64,{encoded}"
-        logger.info(f"Изображение успешно загружено и закодировано: {url}")
+        logger.info(f"Изображение успешно загружено и закод��ровано: {url}")
         return result
     except Exception as e:
         logger.error(f"Ошибка загрузки изображения {url}: {str(e)}")
@@ -418,11 +418,25 @@ async def convert_html_to_image(
 @app.get("/render-card", response_class=FileResponse)
 async def render_card(
     request: Request,
-    vjuh: str,
-    bg: str,
     name: str,
-    text: str
+    text: str,
+    vjuh: str = "https://cdek25.ru/cards/v1.png",
+    bg: str = "https://cdek25.ru/cards/1.png"
 ):
+    # Проверяем и устанавливаем дефолтные значения для изображений
+    if not bg.startswith("https://cdek25.ru/cards/"):
+        bg = "https://cdek25.ru/cards/1.png"
+    
+    if not vjuh.startswith("https://cdek25.ru/cards/"):
+        vjuh = "https://cdek25.ru/cards/v1.png"
+
+    # Добавляем проверку длины параметров
+    if len(name) > 45:
+        name = name[:45] + "..."
+    
+    if len(text) > 200:
+        text = text[:200] + "..."
+
     full_path = None
     try:
         template_path = os.path.join(settings.static_dir, 'index.html')
@@ -432,8 +446,18 @@ async def render_card(
         try:
             # Загружаем изображения
             logger.info("Начало загрузки изображений")
-            bg_data = download_and_encode_image(bg)
-            vjuh_data = download_and_encode_image(vjuh)
+            try:
+                bg_data = download_and_encode_image(bg)
+            except:
+                logger.warning(f"Не удалось загрузить фоновое изображение {bg}, использую дефолтное")
+                bg_data = download_and_encode_image("https://cdek25.ru/cards/1.png")
+            
+            try:
+                vjuh_data = download_and_encode_image(vjuh)
+            except:
+                logger.warning(f"Не удалось загрузить вжух {vjuh}, использую дефолтный")
+                vjuh_data = download_and_encode_image("https://cdek25.ru/cards/v1.png")
+                
             logger.info("Изображения успешно загружены")
             
             # Заменяем placeholder'ы в HTML
@@ -446,7 +470,7 @@ async def render_card(
             logger.error(f"Ошибка при обработке изображений: {str(e)}")
             raise
         except Exception as e:
-            logger.error(f"Неожиданная оши��ка при обработке изображений: {str(e)}")
+            logger.error(f"Неожиданная ошибка при обработке изображений: {str(e)}")
             raise ImageProcessingError("Ошибка при обработке изображений")
 
         # Обновляем настройки для Html2Image
@@ -550,7 +574,7 @@ async def render_card(
         if not os.path.exists(full_path):
             raise ImageProcessingError("Не удалось создать карточку")
             
-        # Добавляем обработку и обрезку изображения
+        # Добавляем обработку и обрезку изображ��ния
         try:
             with Image.open(full_path) as img:
                 # Обрезаем нижние 420 пикселей
