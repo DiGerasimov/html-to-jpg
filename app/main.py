@@ -194,7 +194,7 @@ async def convert_html_to_image(
             # Пробуем запасной вариант с cp1251
             try:
                 html_content = content.decode('cp1251')
-                logger.debug("Успешно ��екодировано с cp1251")
+                logger.debug("Успешно декодировано с cp1251")
             except Exception as e2:
                 logger.error(f"Ошибка декодирования с cp1251: {str(e2)}")
                 raise HTTPException(
@@ -316,22 +316,14 @@ async def render_card(
     try:
         logger.info("Начало рендеринга карточки")
         
-        # Создаем директорию для кэша изображений
-        cache_dir = os.path.join(settings.static_dir, 'cache')
-        os.makedirs(cache_dir, exist_ok=True)
-        
-        # Скачиваем и кэшируем изображения
-        vjuh_path = get_cached_image(vjuh, cache_dir)
-        bg_path = get_cached_image(bg, cache_dir)
-        
-        # Чит��м шаблон HTML
+        # Читаем шаблон HTML
         template_path = os.path.join(settings.static_dir, 'index.html')
         with open(template_path, 'r', encoding='utf-8') as f:
             html_content = f.read()
         
-        # Заменяем placeholder'ы в HTML
-        html_content = html_content.replace('https://cdek25.ru/cardBgImage1.png', f'file://{bg_path}')
-        html_content = html_content.replace('https://cdek25.ru/card-vjuh1.png', f'file://{vjuh_path}')
+        # Заменяем placeholder'ы в HTML - используем те же URL что и в HTML шаблоне
+        html_content = html_content.replace('https://cdek25.ru/cardBgImage1.png', bg)
+        html_content = html_content.replace('https://cdek25.ru/card-vjuh1.png', vjuh)
         html_content = html_content.replace('Константин Викторович Фамильцев', name)
         html_content = html_content.replace('Пусть у тебя в жизни будет ...', text)
         
